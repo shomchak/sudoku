@@ -44,7 +44,7 @@ fromList xs = do ds <- mapM fromInt xs
 
 -- | Create a digit from an integer.
 fromInt :: Int -> Maybe Digit
-fromInt x | 0 <= x && x <= 9 = Just $ x
+fromInt x | 0 <= x && x <= 9 = Just x
           | otherwise        = Nothing
 
 -- ----------------------------------------------------------------------------
