@@ -3,11 +3,9 @@
 module Sudoku where
 
 import Text.Read (readMaybe)
-import Control.Monad (guard)
+import Control.Monad (guard, join)
+import Control.Applicative ((<*>), pure)
 import Data.List (nub)
-import Data.List.Split (chunksOf)
---import Control.Monad.Trans.Maybe
---import Control.Monad.Trans.Class
 
 main :: IO ()
 main = getGrid >>= putStrLn . show
@@ -32,7 +30,6 @@ type Block = [Digit]
 
 -- | Read a grid from stdin.
 getGrid :: IO (Maybe Grid)
---getGrid = getLine >>= return . fromString
 getGrid = fmap fromString getLine
 
 -- | Create a grid from a string of digits.
@@ -42,10 +39,7 @@ fromString s = mapM (\c -> readMaybe [c]) s >>= fromList
 -- | Create a grid from a list of integers.
 fromList :: [Int] -> Maybe Grid
 fromList xs = do ds <- mapM fromInt xs
-                 guard (length ds == 81)
-                 guard (all noDupes $ asRows ds)
-                 guard (all noDupes $ asColumns ds)
-                 guard (all noDupes $ asBlocks ds)
+                 guard $ gridValid ds
                  return $ Grid ds
 
 -- | Create a digit from an integer.
@@ -54,7 +48,7 @@ fromInt x | 0 <= x && x <= 9 = Just $ x
           | otherwise        = Nothing
 
 -- ----------------------------------------------------------------------------
--- Logic on grids.
+-- Grid validation.
 
 -- | Check the list has no duplicate non-zero values.
 noDupes :: [Digit] -> Bool
@@ -63,7 +57,7 @@ noDupes ds = length nonzeroes == (length $ nub nonzeroes)
 
 -- | Split a list of digits into rows of 9 elements.
 asRows :: [Digit] -> [Row]
-asRows = chunksOf 9
+asRows = groups 9
 
 -- | Split a list of digits into columns of 9 elements.
 asColumns :: [Digit] -> [Column]
@@ -73,12 +67,24 @@ asColumns ds = map (\i -> concatMap (return . (!! i)) $ asRows ds) [0..8]
 asBlocks :: [Digit] -> [Block]
 asBlocks ds = map (\i -> concat $ take 3 $ takeEvery 3 $ drop i threes)
                   [0,1,2,9,10,11,18,19,20]
-                     where threes = concatMap (\row -> chunksOf 3 row) $
+                     where threes = concatMap (\row -> groups 3 row) $
                                     asRows ds
 
-slice :: Int -> Int -> [b] -> [b]
-slice from to xs = take (to - from + 1) (drop from xs)
+-- | Check a grid has the right size, and that there are no illegal duplicates.
+gridValid :: [Digit] -> Bool
+gridValid ds = (length ds == 81) &&
+               (all noDupes $ join $ [asRows, asColumns, asBlocks] <*> pure ds)
 
+
+-- ----------------------------------------------------------------------------
+-- Helpers.
+
+-- | Group a list into continuous sublists of a certain size.
+groups :: Int -> [a] -> [[a]]
+groups _ [] = []
+groups n l  = (take n l):(groups n $ drop n l)
+
+-- | Return every nth term of a list.
 takeEvery :: Int -> [b] -> [b]
+takeEvery _ []     = []
 takeEvery n (x:xs) = x:takeEvery n (drop (n-1) xs)
-takeEvery _ []      = []
