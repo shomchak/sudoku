@@ -75,9 +75,32 @@ gridValid :: [Digit] -> Bool
 gridValid ds = (length ds == 81) &&
                (all noDupes $ join $ [asRows, asColumns, asBlocks] <*> pure ds)
 
+-- ----------------------------------------------------------------------------
+-- Grid access.
+
+-- | Return the row of digits to which a certain cell belongs.
+rowOf :: Int -> [Digit] -> Maybe Row
+rowOf n ds | validIndex n = Just $ asRows ds !! quot n 9
+           | otherwise    = Nothing
+
+-- | Return the column of digits to which a certain cell belongs.
+columnOf :: Int -> [Digit] -> Maybe Column
+columnOf n ds | validIndex n = Just $ asColumns ds !! mod n 9
+              | otherwise    = Nothing
+
+-- | Return the cell of digits to which a certain cell belongs
+blockOf :: Int -> [Digit] -> Maybe Block
+blockOf n ds | validIndex n = Just $ asBlocks ds !! i
+             | otherwise    = Nothing
+                 where x = quot (mod n 9) 3
+                       y = quot (quot n 9) 3
+                       i = x + 3 * y
 
 -- ----------------------------------------------------------------------------
 -- Helpers.
+
+validIndex :: Int -> Bool
+validIndex n = 0 <= n && n < 81
 
 -- | Group a list into continuous sublists of a certain size.
 groups :: Int -> [a] -> [[a]]
@@ -88,3 +111,4 @@ groups n l  = (take n l):(groups n $ drop n l)
 takeEvery :: Int -> [b] -> [b]
 takeEvery _ []     = []
 takeEvery n (x:xs) = x:takeEvery n (drop (n-1) xs)
+
