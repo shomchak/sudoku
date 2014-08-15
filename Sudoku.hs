@@ -4,7 +4,7 @@ module Sudoku where
 
 import Text.Read (readMaybe)
 import Control.Monad (guard, join)
-import Control.Applicative ((<*>), pure)
+import Control.Applicative ((<$>), (<*>), pure)
 import Data.List (nub)
 
 main :: IO ()
@@ -92,9 +92,20 @@ columnOf n ds | validIndex n = Just $ asColumns ds !! mod n 9
 blockOf :: Int -> [Digit] -> Maybe Block
 blockOf n ds | validIndex n = Just $ asBlocks ds !! i
              | otherwise    = Nothing
-                 where x = quot (mod n 9) 3
-                       y = quot (quot n 9) 3
-                       i = x + 3 * y
+                where x = quot (mod n 9) 3
+                      y = quot (quot n 9) 3
+                      i = x + 3 * y
+
+-- ----------------------------------------------------------------------------
+-- Grid solving.
+
+-- | Return a list of what digits could occupy a cell.
+choices :: [Digit] -> Int -> Maybe [Digit]
+choices ds n = do taken <- m_taken
+                  filter (not . (`elem` taken)) <$> Just [1..9]
+                     where takens  = [rowOf, columnOf, blockOf] <*>
+                                       pure n <*> pure ds
+                           m_taken = sequence takens >>= Just . concat . nub
 
 -- ----------------------------------------------------------------------------
 -- Helpers.
@@ -112,3 +123,7 @@ takeEvery :: Int -> [b] -> [b]
 takeEvery _ []     = []
 takeEvery n (x:xs) = x:takeEvery n (drop (n-1) xs)
 
+-- | Safe list indexing.
+(!!!) :: [a] -> Int -> Maybe a
+l !!! n | 0 <= n && n < length l = Just $ l !! n
+        | otherwise              = Nothing
