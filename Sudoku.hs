@@ -102,7 +102,7 @@ blockOf n ds | validIndex n = Just $ asBlocks ds !! i
 -- | Return a list of what digits could occupy a cell.
 choices :: [Digit] -> Int -> Maybe [Digit]
 choices ds n = do taken <- m_taken
-                  filter (not . (`elem` taken)) <$> Just [1..9]
+                  filter (not . (`elem` taken)) <$> pure [1..9]
                      where takens  = [rowOf, columnOf, blockOf] <*>
                                        pure n <*> pure ds
                            m_taken = sequence takens >>= Just . concat . nub
